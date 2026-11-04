@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#c2255c">
+<title>Leitor de Gabaritos OGB</title>
+<style>
+:root{
+  --rosa:#c2255c; --rosa-escuro:#9c1c4a; --rosa-claro:#fbe3eb;
+  --fundo:#f6f6f8; --cartao:#fff; --texto:#1b1b1f; --suave:#666b76; --borda:#e1e2e7;
+  --ok:#1e8a4c; --ok-claro:#e3f5ea; --erro:#c62828; --erro-claro:#fde7e7; --alerta:#b26a00; --alerta-claro:#fff3dc;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --rosa:#f06595; --rosa-escuro:#f783ac; --rosa-claro:#3a1f2a;
+    --fundo:#121215; --cartao:#1c1c21; --texto:#ececf1; --suave:#a3a6b1; --borda:#30313a;
+    --ok:#4cc98a; --ok-claro:#163326; --erro:#ff7a7a; --erro-claro:#3a1c1c; --alerta:#ffb547; --alerta-claro:#3a2c12;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--fundo);color:var(--texto);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+header.topo{position:sticky;top:0;z-index:5;background:var(--rosa);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:baseline;gap:10px}
+header.topo h1{font-size:18px;margin:0}
+header.topo span{font-size:13px;opacity:.85}
+main{max-width:860px;margin:0 auto;padding:16px 16px 96px}
+section.tela{display:none}
+section.tela.ativa{display:block}
+h2{font-size:20px;margin:4px 0 12px}
+h3{font-size:16px;margin:16px 0 8px}
+.cartao{background:var(--cartao);border:1px solid var(--borda);border-radius:12px;padding:14px;margin-bottom:12px}
+.linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.entre{justify-content:space-between}
+.suave{color:var(--suave);font-size:14px}
+.pequeno{font-size:13px}
+.btn{border:1px solid var(--borda);background:var(--cartao);border-radius:10px;padding:10px 14px;cursor:pointer;min-height:44px}
+.btn.prim{background:var(--rosa);border-color:var(--rosa);color:#fff;font-weight:600}
+.btn.perigo{color:var(--erro)}
+.btn.mini{min-height:34px;padding:6px 10px;font-size:14px}
+.btn:disabled{opacity:.5}
+label.campo{display:block;margin:10px 0}
+label.campo>span{display:block;font-size:13px;color:var(--suave);margin-bottom:4px}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;border:1px solid var(--borda);background:var(--cartao);border-radius:8px;padding:10px;min-height:44px}
+textarea{min-height:80px}
+label.opcao{display:flex;gap:10px;align-items:flex-start;margin:14px 0;cursor:pointer}
+label.opcao input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--rosa)}
+.grade2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+nav.abas{position:fixed;bottom:0;left:0;right:0;z-index:6;background:var(--cartao);border-top:1px solid var(--borda);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom)}
+nav.abas button{border:0;background:none;padding:10px 4px 8px;font-size:12px;color:var(--suave);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+nav.abas button svg{width:24px;height:24px}
+nav.abas button.ativa{color:var(--rosa);font-weight:600}
+.lista>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--borda)}
+.lista>div:last-child{border-bottom:0}
+.etiqueta{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--rosa-claro);color:var(--rosa-escuro)}
+.etiqueta.ok{background:var(--ok-claro);color:var(--ok)}
+.etiqueta.alerta{background:var(--alerta-claro);color:var(--alerta)}
+.etiqueta.erro{background:var(--erro-claro);color:var(--erro)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--borda)}
+th{font-size:12px;color:var(--suave);font-weight:600}
+td.num,th.num{text-align:right}
+tr.clicavel{cursor:pointer}
+.rolagem{overflow-x:auto}
+.camera{position:relative;background:#000;border-radius:12px;overflow:hidden}
+.camera video,.camera canvas{display:block;width:100%;height:auto}
+.camera canvas{position:absolute;inset:0}
+.camera .vazio{color:#ccc;padding:40px 16px;text-align:center}
+.status{margin:10px 0;padding:10px 12px;border-radius:10px;background:var(--cartao);border:1px solid var(--borda);font-size:15px}
+.status.ok{background:var(--ok-claro);border-color:transparent;color:var(--ok)}
+.status.alerta{background:var(--alerta-claro);border-color:transparent;color:var(--alerta)}
+.resultado-grande{display:flex;gap:16px;align-items:center}
+.resultado-grande .nota{font-size:40px;font-weight:700;color:var(--rosa);min-width:84px;text-align:center}
+.questoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px;font-size:13px}
+.questoes div{border-radius:6px;padding:4px 6px;background:var(--fundo);display:flex;justify-content:space-between;cursor:pointer}
+.questoes div.c{background:var(--ok-claro);color:var(--ok)}
+.questoes div.e{background:var(--erro-claro);color:var(--erro)}
+.questoes div.d{outline:2px solid var(--alerta)}
+.gab-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 16px}
+.gab-q{display:flex;align-items:center;gap:4px}
+.gab-q b{width:28px;font-size:13px;text-align:right;margin-right:4px}
+.gab-q button{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--rosa);background:var(--cartao);color:var(--rosa);font-size:13px;padding:0;cursor:pointer}
+.gab-q button.sel{background:var(--rosa);color:#fff}
+.gab-q button.anul{border-color:var(--suave);color:var(--suave);font-size:11px}
+.gab-q button.anul.sel{background:var(--suave);color:var(--cartao)}
+dialog{border:0;border-radius:14px;padding:0;width:min(720px,calc(100vw - 24px));max-height:calc(100vh - 40px);background:var(--cartao);color:var(--texto)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog .cab{position:sticky;top:0;background:var(--cartao);padding:14px 16px;border-bottom:1px solid var(--borda);display:flex;justify-content:space-between;align-items:center;z-index:1}
+dialog .cab h2{margin:0;font-size:18px}
+dialog .corpo{padding:4px 16px 16px}
+dialog .rodape{position:sticky;bottom:0;background:var(--cartao);padding:12px 16px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.aviso{background:var(--alerta-claro);color:var(--alerta);border-radius:8px;padding:8px 10px;font-size:14px;margin:8px 0}
+#impressao{display:none}
+@media print{
+  @page{size:A4;margin:0}
+  html,body{background:#fff}
+  body>*:not(#impressao){display:none!important}
+  #impressao{display:block}
+  #impressao svg{display:block;width:210mm;height:297mm;page-break-after:always;break-after:page}
+}
+@media (max-width:420px){.grade2{grid-template-columns:1fr}}
+.estreita{display:none}
+@media (max-width:600px){.larga{display:none}.estreita{display:block}}
+</style>
+<!--LIBS-->
+</head>
+<body>
+<header class="topo"><h1>Leitor de Gabaritos</h1><span>Colégio e Curso OGB</span></header>
+<main>
+  <!-- SIMULADOS -->
+  <section class="tela ativa" id="tela-simulados">
+    <div class="linha entre"><h2>Simulados</h2><button class="btn prim" id="novo-simulado">+ Novo simulado</button></div>
+    <div id="lista-simulados"></div>
+  </section>
+
+  <!-- ALUNOS -->
+  <section class="tela" id="tela-alunos">
+    <h2>Turmas e alunos</h2>
+    <div class="cartao">
+      <b>Importar de uma planilha</b>
+      <p class="suave">Excel (.xlsx) ou .csv com as colunas <b>Turma</b>, <b>Número</b> e <b>Nome</b>. Uma turma importada de novo substitui a lista antiga dessa turma.</p>
+      <label class="campo"><span>Turma (só se a planilha não tiver a coluna Turma)</span><input type="text" id="turma-padrao" placeholder="Ex.: 3ª A"></label>
+      <div class="linha">
+        <label class="btn prim">Escolher planilha<input type="file" id="arquivo-alunos" accept=".xlsx,.xls,.csv" hidden></label>
+        <button class="btn" id="baixar-modelo">Baixar modelo de planilha</button>
+      </div>
+      <div id="msg-importacao"></div>
+    </div>
+    <div id="lista-turmas"></div>
+    <div class="cartao">
+      <b>Cópia de segurança</b>
+      <p class="suave">Os dados ficam guardados neste aparelho. Baixe uma cópia de vez em quando, ou para passar tudo para outro celular ou computador.</p>
+      <div class="linha">
+        <button class="btn" id="baixar-backup">Baixar cópia</button>
+        <label class="btn">Restaurar cópia<input type="file" id="arquivo-backup" accept=".json" hidden></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- CORRIGIR -->
+  <section class="tela" id="tela-corrigir">
+    <h2>Corrigir pela câmera</h2>
+    <label class="campo"><span>Simulado</span><select id="sim-corrigir"></select></label>
+    <div class="camera" id="caixa-camera">
+      <div class="vazio" id="camera-vazia">Toque em <b>Abrir câmera</b> e aponte para o cartão-resposta.<br>Os 4 quadrados pretos dos cantos precisam aparecer.</div>
+      <video id="video" playsinline muted hidden></video>
+      <canvas id="sobreposicao" hidden></canvas>
+    </div>
+    <div class="status" id="status-leitura">Pronto para ler.</div>
+    <div class="linha">
+      <button class="btn prim" id="abrir-camera">Abrir câmera</button>
+      <button class="btn" id="fechar-camera" hidden>Fechar câmera</button>
+      <label class="btn">Tirar foto<input type="file" id="foto" accept="image/*" capture="environment" hidden></label>
+    </div>
+    <div id="ultimo-resultado"></div>
+    <h3 id="titulo-lidos"></h3>
+    <div class="cartao lista" id="lidos-sessao"><div class="suave">Nenhuma folha lida ainda.</div></div>
+  </section>
+
+  <!-- RESULTADOS -->
+  <section class="tela" id="tela-resultados">
+    <h2>Resultados</h2>
+    <div class="grade2">
+      <label class="campo"><span>Simulado</span><select id="sim-resultados"></select></label>
+      <label class="campo"><span>Turma</span><select id="turma-resultados"></select></label>
+    </div>
+    <div class="linha" style="margin-bottom:12px">
+      <button class="btn prim" id="baixar-planilha">Baixar planilha (.xlsx)</button>
+    </div>
+    <div id="resumo-resultados"></div>
+    <div class="cartao rolagem" id="tabela-resultados"></div>
+  </section>
+</main>
+
+<nav class="abas">
+  <button data-tela="simulados" class="ativa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Simulados</button>
+  <button data-tela="alunos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .7 3.2 2.5 3.6 5.2"/></svg>Alunos</button>
+  <button data-tela="corrigir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><circle cx="12" cy="12" r="3.5"/></svg>Corrigir</button>
+  <button data-tela="resultados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Resultados</button>
+</nav>
+
+<!-- Diálogo: simulado -->
+<dialog id="dlg-simulado">
+  <div class="cab"><h2 id="dlg-sim-titulo">Simulado</h2><button class="btn mini" data-fechar>Fechar</button></div>
+  <div class="corpo">
+    <label class="campo"><span>Nome (sai impresso na folha)</span><input type="text" id="f-titulo" placeholder="Ex.: Simulado Global — 3ª série — 1º trimestre"></label>
+    <div class="grade2">
+      <label class="campo"><span>Tipo</span><select id="f-tipo"></select></label>
+      <label class="campo"><span>Número de questões</span><input type="number" id="f-n" min="5" max="90" step="1"></label>
+      <label class="campo"><span>Trimestre</span><select id="f-trimestre"><option>1</option><option>2</option><option>3</option></select></label>
+      <label class="campo"><span>Selo no canto (ex.: 1º Dia)</span><input type="text" id="f-selo" maxlength="10"></label>
+    </div>
+    <label class="campo"><span>Turmas que fazem este simulado</span><div class="linha" id="f-turmas"></div></label>
+    <label class="campo"><span>Áreas para contar acertos separados (uma por linha, opcional). Ex.: Linguagens 1-45</span><textarea id="f-areas" placeholder="Linguagens 1-45&#10;Humanas 46-90"></textarea></label>
+    <label class="opcao"><input type="checkbox" id="f-usa-cor"><span>Provas com cores diferentes (um gabarito para cada cor)</span></label>
+    <label class="opcao"><input type="checkbox" id="f-usa-lingua"><span>Questões de língua estrangeira com gabarito diferente para Espanhol</span></label>
+    <div class="grade2" id="f-lingua-faixa" hidden>
+      <label class="campo"><span>Da questão</span><input type="number" id="f-lingua-de" value="1" min="1"></label>
+      <label class="campo"><span>Até a questão</span><input type="number" id="f-lingua-ate" value="5" min="1"></label>
+    </div>
+  </div>
+  <div class="rodape">
+    <button class="btn perigo" id="f-excluir">Excluir</button>
+    <button class="btn prim" id="f-salvar">Salvar</button>
+  </div>
+</dialog>
+
+<!-- Diálogo: gabarito -->
+<dialog id="dlg-gabarito">
+  <div class="cab"><h2>Gabarito</h2><button class="btn mini" data-fechar>Fechar</button></div>
+  <div class="corpo">
+    <p class="suave" id="gab-info"></p>
+    <div class="linha" id="gab-cores"></div>
+    <label class="campo"><span>Colar o gabarito em sequência (ex.: ABCDEABCDE...). Use X para questão anulada.</span>
+      <div class="linha"><input type="text" id="gab-texto" style="flex:1;min-width:180px" autocomplete="off" autocapitalize="characters"><button class="btn" id="gab-aplicar">Aplicar</button></div>
+    </label>
+    <h3 id="gab-titulo-principal">Respostas</h3>
+    <div class="gab-grade" id="gab-grade"></div>
+    <div id="gab-espanhol-bloco" hidden>
+      <h3>Espanhol (substitui as questões de língua para quem marcar Espanhol)</h3>
+      <div class="gab-grade" id="gab-grade-esp"></div>
+    </div>
+  </div>
+  <div class="rodape"><span class="suave" id="gab-contagem" style="margin-right:auto"></span><button class="btn prim" id="gab-salvar">Salvar gabarito</button></div>
+</dialog>
+
+<!-- Diálogo: imprimir folhas -->
+<dialog id="dlg-imprimir">
+  <div class="cab"><h2>Imprimir cartões-resposta</h2><button class="btn mini" data-fechar>Fechar</button></div>
+  <div class="corpo">
+    <p class="suave">Uma folha por aluno, com nome, turma, número e QR code. Imprima em A4, sem ajustar à página (tamanho real, 100%).</p>
+    <label class="campo"><span>Turma</span><select id="imp-turma"></select></label>
+    <label class="campo"><span>Data da prova (opcional)</span><input type="text" id="imp-data" placeholder="Ex.: 10/11/2026"></label>
+    <p class="suave" id="imp-info"></p>
+  </div>
+  <div class="rodape">
+    <button class="btn" id="imp-gabarito">Folha para o gabarito</button>
+    <button class="btn prim" id="imp-ok">Imprimir folhas da turma</button>
+  </div>
+</dialog>
+
+<!-- Diálogo: escolher aluno (quando o QR não é lido) -->
+<dialog id="dlg-aluno">
+  <div class="cab"><h2>De quem é esta folha?</h2><button class="btn mini" data-fechar>Cancelar</button></div>
+  <div class="corpo">
+    <p class="suave">Li as respostas, mas não consegui ler o QR code. Escolha o aluno.</p>
+    <label class="campo"><span>Turma</span><select id="al-turma"></select></label>
+    <label class="campo"><span>Aluno</span><select id="al-aluno"></select></label>
+  </div>
+  <div class="rodape"><button class="btn prim" id="al-ok">Salvar para este aluno</button></div>
+</dialog>
+
+<!-- Diálogo: detalhe do resultado -->
+<dialog id="dlg-detalhe">
+  <div class="cab"><h2 id="det-titulo">Aluno</h2><button class="btn mini" data-fechar>Fechar</button></div>
+  <div class="corpo" id="det-corpo"></div>
+  <div class="rodape"><button class="btn perigo" id="det-excluir">Apagar leitura</button></div>
+</dialog>
+
+<div id="impressao"></div>
+
+<script>
+/*APP-SCRIPTS*/
+</script>
+</body>
+</html>

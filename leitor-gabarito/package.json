@@ -1,0 +1,11 @@
+{
+  "name": "leitor-gabarito-ogb",
+  "private": true,
+  "description": "Leitor de cartões-resposta pela câmera do celular (Colégio e Curso OGB)",
+  "scripts": { "build": "python3 build.py node_modules" },
+  "dependencies": {
+    "jsqr": "1.4.0",
+    "qrcode-generator": "1.4.4",
+    "xlsx": "0.18.5"
+  }
+}

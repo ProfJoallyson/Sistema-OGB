@@ -71,6 +71,10 @@ tr.clicavel{cursor:pointer}
 .status.alerta{background:var(--alerta-claro);border-color:transparent;color:var(--alerta)}
 .resultado-grande{display:flex;gap:16px;align-items:center}
 .resultado-grande .nota{font-size:40px;font-weight:700;color:var(--rosa);min-width:84px;text-align:center}
+.nota-areas{display:flex;gap:12px;min-width:84px}
+.nota-areas>div{text-align:center}
+.nota-areas b{display:block;font-size:30px;color:var(--rosa);line-height:1.1}
+.nota-areas span{font-size:12px;color:var(--suave)}
 .questoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px;font-size:13px}
 .questoes div{border-radius:6px;padding:4px 6px;background:var(--fundo);display:flex;justify-content:space-between;cursor:pointer}
 .questoes div.c{background:var(--ok-claro);color:var(--ok)}
@@ -192,6 +196,7 @@ dialog .rodape{position:sticky;bottom:0;background:var(--cartao);padding:12px 16
     </div>
     <label class="campo"><span>Turmas que fazem este simulado</span><div class="linha" id="f-turmas"></div></label>
     <label class="campo"><span>Áreas para contar acertos separados (uma por linha, opcional). Ex.: Linguagens 1-45</span><textarea id="f-areas" placeholder="Linguagens 1-45&#10;Humanas 46-90"></textarea></label>
+    <label class="opcao"><input type="checkbox" id="f-nota-area"><span>Cada área tem nota própria (Simulado Global da 3ª série: cada metade da prova vale uma nota)</span></label>
     <label class="opcao"><input type="checkbox" id="f-usa-cor"><span>Provas com cores diferentes (um gabarito para cada cor)</span></label>
     <label class="opcao"><input type="checkbox" id="f-usa-lingua"><span>Questões de língua estrangeira com gabarito diferente para Espanhol</span></label>
     <div class="grade2" id="f-lingua-faixa" hidden>

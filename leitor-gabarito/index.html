@@ -71,6 +71,10 @@ tr.clicavel{cursor:pointer}
 .status.alerta{background:var(--alerta-claro);border-color:transparent;color:var(--alerta)}
 .resultado-grande{display:flex;gap:16px;align-items:center}
 .resultado-grande .nota{font-size:40px;font-weight:700;color:var(--rosa);min-width:84px;text-align:center}
+.nota-areas{display:flex;gap:12px;min-width:84px}
+.nota-areas>div{text-align:center}
+.nota-areas b{display:block;font-size:30px;color:var(--rosa);line-height:1.1}
+.nota-areas span{font-size:12px;color:var(--suave)}
 .questoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px;font-size:13px}
 .questoes div{border-radius:6px;padding:4px 6px;background:var(--fundo);display:flex;justify-content:space-between;cursor:pointer}
 .questoes div.c{background:var(--ok-claro);color:var(--ok)}
@@ -12615,6 +12619,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     </div>
     <label class="campo"><span>Turmas que fazem este simulado</span><div class="linha" id="f-turmas"></div></label>
     <label class="campo"><span>Áreas para contar acertos separados (uma por linha, opcional). Ex.: Linguagens 1-45</span><textarea id="f-areas" placeholder="Linguagens 1-45&#10;Humanas 46-90"></textarea></label>
+    <label class="opcao"><input type="checkbox" id="f-nota-area"><span>Cada área tem nota própria (Simulado Global da 3ª série: cada metade da prova vale uma nota)</span></label>
     <label class="opcao"><input type="checkbox" id="f-usa-cor"><span>Provas com cores diferentes (um gabarito para cada cor)</span></label>
     <label class="opcao"><input type="checkbox" id="f-usa-lingua"><span>Questões de língua estrangeira com gabarito diferente para Espanhol</span></label>
     <div class="grade2" id="f-lingua-faixa" hidden>
@@ -12737,27 +12742,29 @@ function layoutGrade(nQuestoes) {
 const TIPOS = {
   SO: { nome: 'Simulado Obrigatório', n: 80 },
   SP: { nome: 'Simulado Parcial', n: 80 },
-  SG: { nome: 'Simulado Global', n: 90 },
+  SG: { nome: 'Simulado Global', n: 80 },
   SE: { nome: 'Simulado Extra (bônus)', n: 80 },
   OUTRO: { nome: 'Outro', n: 45 },
 };
 
 // [acertos mínimos, nota] — PROCV aproximado, como na planilha.
-const TABELA_80 = [[1, 2], [10, 3], [20, 5], [30, 6], [40, 7], [50, 8], [66, 9], [72, 10]];
-const TABELA_90 = [[1, 2], [11, 3], [23, 5], [34, 6], [45, 7], [56, 8], [74, 9], [81, 10]]; // decisão de 20/10/2026
+// Tabela do professor (04/11/2026): 0 acertos = 0; 1-9 = 2; 10-19 = 3; ... 72 ou mais = 10.
+const TABELA_80 = [[0, 0], [1, 2], [10, 3], [20, 5], [30, 6], [40, 7], [50, 8], [66, 9], [72, 10]];
 const TABELA_SE = [[0, 0], [20, 0.5], [35, 1], [50, 1.5], [64, 2]];
 
+// Tabela de 80 com os limites proporcionais ao número de questões.
+// Ex.: 40 questões (metade da prova do Global) => limites divididos por 2: 1-4 = 2, 5-9 = 3, ..., 36-40 = 10.
+function tabelaParaQuestoes(n) {
+  return TABELA_80.map(([a, nota]) => [a === 0 ? 0 : Math.max(1, Math.ceil(a * n / 80 - 1e-9)), nota]);
+}
 function tabelaDoSimulado(sim) {
   if (sim.tipo === 'SE') return TABELA_SE;
-  if (sim.tipo === 'SG' || sim.nQuestoes === 90) return TABELA_90;
-  if (sim.nQuestoes === 80) return TABELA_80;
-  // outro tamanho: tabela de 80 proporcional (mesma regra usada para criar a do SG)
-  return TABELA_80.map(([a, n]) => [Math.max(1, Math.round(a * sim.nQuestoes / 80)), n]);
+  return tabelaParaQuestoes(sim.nQuestoes);
 }
 
-// Devolve a nota (número) ou null quando a planilha mostraria "-" (0 acertos).
-function notaPorAcertos(sim, acertos) {
-  const tab = tabelaDoSimulado(sim);
+// Devolve a nota (número) pela tabela (PROCV aproximado).
+function notaPorAcertos(sim, acertos, tabela) {
+  const tab = tabela || tabelaDoSimulado(sim);
   let nota = null;
   for (const [min, n] of tab) if (acertos >= min) nota = n;
   return nota;
@@ -12802,7 +12809,10 @@ function corrigirResultado(sim, r) {
   const areas = (sim.areas || []).map(a => {
     let ac = 0;
     for (let q = a.de; q <= a.ate; q++) if (certo[q - 1]) ac++;
-    return { nome: a.nome, acertos: ac, total: a.ate - a.de + 1 };
+    const total = a.ate - a.de + 1;
+    // No Global da 3ª série cada área (metade da prova) tem nota própria.
+    const nota = sim.notaPorArea ? notaPorAcertos(sim, ac, tabelaParaQuestoes(total)) : null;
+    return { nome: a.nome, acertos: ac, total, nota };
   });
   const nota = notaPorAcertos(sim, acertos);
   return { acertos, certo, areas, nota, corUsada: cor, avisos, semGabarito, brancos, duplas, gabarito };
@@ -13307,6 +13317,15 @@ function irPara(tela) {
 }
 document.querySelectorAll('nav.abas button').forEach(b => b.addEventListener('click', () => irPara(b.dataset.tela)));
 
+// Nota principal para mostrar: a do simulado ou, no Global, as notas das áreas.
+function notaCurta(sim, c) {
+  return sim.notaPorArea ? c.areas.map(a => formatarNota(sim, a.nota)).join(' · ') : formatarNota(sim, c.nota);
+}
+function blocoNota(sim, c) {
+  if (!sim.notaPorArea) return el('div', { class: 'nota' }, formatarNota(sim, c.nota));
+  return el('div', { class: 'nota-areas' }, c.areas.map(a => el('div', {}, el('b', {}, formatarNota(sim, a.nota)), el('span', {}, a.nome))));
+}
+
 // ================= SIMULADOS =================
 function preenchimentoGabarito(sim) {
   const cores = sim.usaCor ? ['Azul', 'Amarela', 'Branca', 'Rosa'] : ['Única'];
@@ -13345,6 +13364,10 @@ let simEditando = null;
 const fTipo = $('#f-tipo');
 for (const [k, v] of Object.entries(TIPOS)) fTipo.append(el('option', { value: k }, `${k} — ${v.nome}`));
 fTipo.addEventListener('change', () => {
+  if (fTipo.value === 'SG') {
+    $('#f-nota-area').checked = true;
+    if (!$('#f-areas').value.trim()) $('#f-areas').value = 'Linguagens 1-40\nHumanas 41-80';
+  }
   if (fTipo.value !== 'OUTRO') $('#f-n').value = TIPOS[fTipo.value].n;
   if (!$('#f-selo').value || Object.keys(TIPOS).includes($('#f-selo').value)) $('#f-selo').value = fTipo.value === 'OUTRO' ? '' : fTipo.value;
 });
@@ -13361,6 +13384,7 @@ function abrirSimulado(sim) {
   $('#f-selo').value = sim ? sim.selo : 'SO';
   $('#f-areas').value = sim ? (sim.areas || []).map(a => `${a.nome} ${a.de}-${a.ate}`).join('\n') : '';
   $('#f-usa-cor').checked = !!(sim && sim.usaCor);
+  $('#f-nota-area').checked = !!(sim && sim.notaPorArea);
   $('#f-usa-lingua').checked = !!(sim && sim.usaLingua);
   $('#f-lingua-faixa').hidden = !(sim && sim.usaLingua);
   $('#f-lingua-de').value = sim && sim.lingua ? sim.lingua.de : 1;
@@ -13395,9 +13419,11 @@ $('#f-salvar').addEventListener('click', () => {
       titulo, tipo: fTipo.value, nQuestoes: n, trimestre: $('#f-trimestre').value, selo: $('#f-selo').value.trim(),
       turmas: [...document.querySelectorAll('#f-turmas input:checked')].map(i => i.value),
       areas: lerAreas($('#f-areas').value, n),
+      notaPorArea: $('#f-nota-area').checked,
       usaCor: $('#f-usa-cor').checked, usaLingua: $('#f-usa-lingua').checked,
       lingua: { de: +$('#f-lingua-de').value, ate: +$('#f-lingua-ate').value },
     };
+    if (dados.notaPorArea && !dados.areas.length) throw new Error('Para dar nota por área, escreva as áreas. Ex.: Linguagens 1-40 e Humanas 41-80.');
     if (dados.usaLingua && !(dados.lingua.de >= 1 && dados.lingua.ate <= n && dados.lingua.de <= dados.lingua.ate)) throw new Error('Faixa de língua estrangeira inválida.');
     if (simEditando) Object.assign(simEditando, dados);
     else Dados.simulados.push(Object.assign({ id: novoId(dados.tipo, dados.trimestre), gabaritos: {}, criadoEm: new Date().toISOString() }, dados));
@@ -13764,7 +13790,7 @@ function renderUltimo(sim, chave) {
   const box = $('#ultimo-resultado'); box.innerHTML = '';
   box.append(el('div', { class: 'cartao' },
     el('div', { class: 'resultado-grande' },
-      el('div', { class: 'nota' }, formatarNota(sim, c.nota)),
+      blocoNota(sim, c),
       el('div', {}, el('b', {}, aluno ? aluno.nome : `Nº ${r.numero}`), el('div', { class: 'suave' }, `${r.turma} · Nº ${r.numero}`),
         el('div', {}, `${c.acertos} de ${sim.nQuestoes} acertos`, c.areas.length ? el('span', { class: 'suave' }, ' · ' + c.areas.map(a => `${a.nome}: ${a.acertos}`).join(' · ')) : ''))),
     avisos.map(a => el('div', { class: 'aviso' }, a)),
@@ -13782,7 +13808,7 @@ function renderLidosSessao() {
   for (const it of itens) {
     const r = res[it.chave], c = corrigirResultado(sim, r), a = Dados.aluno(r.turma, r.numero);
     box.append(el('div', { class: 'clicavel', onclick: () => abrirDetalhe(sim, it.chave) },
-      el('span', {}, `${r.turma} · ${r.numero} — ${a ? a.nome : '?'}`), el('b', {}, `${c.acertos} · ${formatarNota(sim, c.nota)}`)));
+      el('span', {}, `${r.turma} · ${r.numero} — ${a ? a.nome : '?'}`), el('b', {}, `${c.acertos} · ${notaCurta(sim, c)}`)));
   }
 }
 $('#sim-corrigir').addEventListener('change', () => { ultimoAceito = null; $('#ultimo-resultado').innerHTML = ''; renderLidosSessao(); });
@@ -13805,7 +13831,7 @@ function renderDetalhe() {
     el('select', { onchange: e => aoMudar(e.target.value) }, opcoes.map(o => el('option', { value: o, selected: o === valor }, o || '(não marcada)'))));
   corpo.append(
     el('p', { class: 'suave' }, `${r.turma} · Nº ${r.numero} · lido em ${new Date(r.lidoEm).toLocaleString('pt-BR')}${r.manual ? ' · aluno escolhido à mão' : ''}`),
-    el('div', { class: 'resultado-grande' }, el('div', { class: 'nota' }, formatarNota(sim, c.nota)),
+    el('div', { class: 'resultado-grande' }, blocoNota(sim, c),
       el('div', {}, el('b', {}, `${c.acertos} de ${sim.nQuestoes} acertos`), c.areas.map(x => el('div', { class: 'suave' }, `${x.nome}: ${x.acertos} de ${x.total}`)))),
     c.avisos.map(x => el('div', { class: 'aviso' }, x)),
     el('div', { class: 'grade2' },
@@ -13872,13 +13898,13 @@ function renderResultados() {
     lidas.length ? el('span', { class: 'etiqueta' }, `Média: ${media.toFixed(1).replace('.', ',')} acertos`) : ''));
   const notaCol = sim.tipo === 'SE' ? 'Bônus' : 'Nota';
   tab.append(el('table', {},
-    el('thead', {}, el('tr', {}, el('th', { class: 'larga' }, 'Turma'), el('th', {}, 'Nº'), el('th', {}, 'Nome'), sim.areas.map(a => el('th', { class: 'num larga' }, a.nome)), el('th', { class: 'num' }, 'Acertos'), el('th', { class: 'num' }, notaCol))),
+    el('thead', {}, el('tr', {}, el('th', { class: 'larga' }, 'Turma'), el('th', {}, 'Nº'), el('th', {}, 'Nome'), sim.areas.map(a => el('th', { class: 'num larga' }, a.nome)), el('th', { class: 'num' }, 'Acertos'), el('th', { class: 'num' }, sim.notaPorArea ? 'Notas' : notaCol))),
     el('tbody', {}, linhas.map(l => el('tr', l.r ? { class: 'clicavel', onclick: () => abrirDetalhe(sim, chaveAluno(l.turma, l.numero)) } : {},
       el('td', { class: 'larga' }, l.turma), el('td', {}, l.numero), el('td', {}, l.nome, l.r && l.c.avisos.length ? el('span', { class: 'etiqueta alerta', style: 'margin-left:6px' }, '!') : '',
-        !st.value ? el('div', { class: 'suave pequeno estreita' }, l.turma) : '', l.r && sim.areas.length ? el('div', { class: 'suave pequeno estreita' }, l.c.areas.map(a => `${a.nome}: ${a.acertos}`).join(' · ')) : ''),
-      sim.areas.map((a, i) => el('td', { class: 'num larga' }, l.r ? l.c.areas[i].acertos : '')),
+        !st.value ? el('div', { class: 'suave pequeno estreita' }, l.turma) : '', l.r && sim.areas.length ? el('div', { class: 'suave pequeno estreita' }, l.c.areas.map(a => `${a.nome}: ${a.acertos}${sim.notaPorArea ? ` (${formatarNota(sim, a.nota)})` : ''}`).join(' · ')) : ''),
+      sim.areas.map((a, i) => el('td', { class: 'num larga' }, l.r ? (sim.notaPorArea ? `${l.c.areas[i].acertos} (${formatarNota(sim, l.c.areas[i].nota)})` : l.c.areas[i].acertos) : '')),
       el('td', { class: 'num' }, l.r ? el('b', {}, l.c.acertos) : el('span', { class: 'suave' }, 'não lido')),
-      el('td', { class: 'num' }, l.r ? formatarNota(sim, l.c.nota) : ''))))));
+      el('td', { class: 'num' }, l.r ? notaCurta(sim, l.c) : ''))))));
 }
 $('#sim-resultados').addEventListener('change', renderResultados);
 $('#turma-resultados').addEventListener('change', renderResultados);
@@ -13887,11 +13913,12 @@ $('#baixar-planilha').addEventListener('click', () => {
   if (!sim) return;
   const linhas = linhasResultado(sim, $('#turma-resultados').value);
   const notaCol = sim.tipo === 'SE' ? 'Bônus' : 'Nota';
-  const cab = ['Turma', 'Nº', 'Nome', ...(sim.usaLingua ? ['Língua'] : []), ...(sim.usaCor ? ['Cor da prova'] : []), ...sim.areas.map(a => `Acertos ${a.nome}`), 'Acertos', notaCol, 'Observações'];
+  const cab = ['Turma', 'Nº', 'Nome', ...(sim.usaLingua ? ['Língua'] : []), ...(sim.usaCor ? ['Cor da prova'] : []), ...sim.areas.map(a => `Acertos ${a.nome}`), ...(sim.notaPorArea ? sim.areas.map(a => `Nota ${a.nome}`) : []), 'Acertos', ...(sim.notaPorArea ? [] : [notaCol]), 'Observações'];
   const dados = linhas.map(l => [l.turma, +l.numero || l.numero, l.nome,
     ...(sim.usaLingua ? [l.r ? l.r.lingua || '' : ''] : []), ...(sim.usaCor ? [l.r ? l.r.cor || '' : ''] : []),
     ...sim.areas.map((a, i) => l.r ? l.c.areas[i].acertos : ''),
-    l.r ? l.c.acertos : '', l.r ? (l.c.nota === null ? '-' : l.c.nota) : '',
+    ...(sim.notaPorArea ? sim.areas.map((a, i) => l.r ? l.c.areas[i].nota : '') : []),
+    l.r ? l.c.acertos : '', ...(sim.notaPorArea ? [] : [l.r ? (l.c.nota === null ? '-' : l.c.nota) : '']),
     l.r ? l.c.avisos.join('; ') : 'não lido']);
   const ws1 = XLSX.utils.aoa_to_sheet([cab, ...dados]);
   ws1['!cols'] = cab.map((c, i) => ({ wch: i === 2 ? 40 : Math.max(8, c.length + 2) }));

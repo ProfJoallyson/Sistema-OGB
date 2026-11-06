@@ -2,6 +2,10 @@
 
 Ferramentas do Colégio e Curso OGB.
 
+## Sistema escolar (`app/`)
+
+App único (instalável) para professores, secretaria, tesouraria, coordenação, direção e administrador: notas, boletins, frequência da catraca, matrícula e documentos. Detalhes em [`app/README.md`](app/README.md).
+
 ## Leitor de Gabaritos (`leitor-gabarito/`)
 
 App que roda no navegador do celular, sem instalar nada:

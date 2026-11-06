@@ -1,0 +1,43 @@
+/* Identidade visual do app em um só lugar.
+   O design final está em discussão; para trocar o visual, mude só estas variáveis
+   (ou troque este arquivo inteiro por outro com as mesmas variáveis). */
+:root {
+  --cor-primaria: #2b3192;        /* azul anil do OGB */
+  --cor-primaria-texto: #ffffff;
+  --cor-destaque: #f9ac14;        /* laranja-dourado do OGB */
+  --cor-fundo: #f5f6f8;
+  --cor-superficie: #ffffff;
+  --cor-superficie-2: #eef0f4;
+  --cor-texto: #1c1e24;
+  --cor-texto-suave: #5d6270;
+  --cor-borda: #dcdfe6;
+  --cor-ok: #1f7a4d;
+  --cor-alerta: #b26a00;
+  --cor-erro: #b3261e;
+  --cor-grupo-azul: #2b5cb8;      /* declarações */
+  --cor-grupo-verde: #1f7a4d;     /* registros do aluno */
+  --cor-grupo-laranja: #c46a00;   /* turma inteira */
+  --fonte: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --fonte-titulo: var(--fonte);
+  --raio: 10px;
+  --raio-peq: 6px;
+  --sombra: 0 1px 2px rgba(0, 0, 0, .06), 0 2px 8px rgba(0, 0, 0, .04);
+  --espaco: 16px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --cor-primaria: #8f95ff;
+    --cor-primaria-texto: #10122e;
+    --cor-fundo: #121318;
+    --cor-superficie: #1b1d24;
+    --cor-superficie-2: #242733;
+    --cor-texto: #eceef3;
+    --cor-texto-suave: #a5a9b6;
+    --cor-borda: #333744;
+    --cor-ok: #5cc78f;
+    --cor-alerta: #e9a640;
+    --cor-erro: #ff8a80;
+    color-scheme: dark;
+  }
+}

@@ -1,0 +1,57 @@
+rules_version = '2';
+// Regras do banco (Firestore) do Sistema OGB. RASCUNHO: revisar e testar no
+// emulador do Firebase antes de publicar. As mesmas permissões estão em
+// app/src/modelo/perfis.js; as duas precisam andar juntas.
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function email() { return request.auth.token.email.lower(); }
+    function logado() {
+      return request.auth != null && request.auth.token.email_verified
+        && email().matches('.*@colegioecursoogb[.]com[.]br$');
+    }
+    function eu() { return get(/databases/$(db)/documents/usuarios/$(email())).data; }
+    function ativo() { return logado() && exists(/databases/$(db)/documents/usuarios/$(email())) && eu().ativo != false; }
+    function tem(p) { return ativo() && p in eu().perfis; }
+    function veTudo() { return tem('secretaria') || tem('coordenacao') || tem('direcao') || tem('admin'); }
+    function daAula(turmaId, discId) {
+      return tem('professor')
+        && get(/databases/$(db)/documents/atribuicoes/$(turmaId + '_' + discId)).data.professorId == email();
+    }
+
+    match /escola/{id} { allow read: if ativo(); allow write: if tem('admin'); }
+    match /usuarios/{e} {
+      allow read: if logado() && (e == email() || tem('admin') || tem('direcao'));
+      allow write: if tem('admin');
+    }
+    match /funcionarios/{id} { allow read: if ativo(); allow write: if tem('secretaria') || tem('admin'); }
+    match /turmas/{id} { allow read: if ativo(); allow write: if tem('secretaria') || tem('admin'); }
+    match /atribuicoes/{id} { allow read: if ativo(); allow write: if tem('secretaria') || tem('admin'); }
+
+    // Alunos e matrículas: tesouraria e secretaria gravam; professor lê (o app filtra pela turma).
+    match /alunos/{id} { allow read: if veTudo() || tem('tesouraria') || tem('professor'); allow write: if tem('tesouraria') || tem('secretaria') || tem('admin'); }
+    match /matriculas/{id} { allow read: if veTudo() || tem('tesouraria') || tem('professor'); allow write: if tem('tesouraria') || tem('secretaria') || tem('admin'); }
+
+    // Notas: professor só da própria disciplina e turma; secretaria só com a permissão de corrigir.
+    match /notas/{id} {
+      allow read: if veTudo() || tem('professor');
+      allow write: if tem('admin') || (tem('secretaria') && eu().corrigeNotas == true)
+        || (request.resource.data.turmaId != null && daAula(request.resource.data.turmaId, request.resource.data.disciplinaId)
+            && (resource == null || resource.data.disciplinaId == request.resource.data.disciplinaId));
+    }
+    match /simulados/{id} { allow read: if veTudo() || tem('professor'); allow write: if tem('secretaria') || tem('admin'); }
+    match /faltas/{id} { allow read: if veTudo() || tem('professor'); allow write: if tem('secretaria') || tem('admin'); }
+
+    // Histórico: qualquer usuário ativo registra a própria ação; ninguém altera nem apaga.
+    match /historico/{id} {
+      allow read: if tem('admin') || tem('direcao') || tem('coordenacao');
+      allow create: if ativo() && request.resource.data.usuarioId == email();
+      allow update, delete: if false;
+    }
+    match /emissoes/{id} {
+      allow read: if veTudo();
+      allow create: if tem('secretaria') || tem('admin');
+      allow update, delete: if false;
+    }
+  }
+}

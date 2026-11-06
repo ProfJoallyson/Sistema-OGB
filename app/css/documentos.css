@@ -1,0 +1,59 @@
+/* Folhas A4 dos documentos (tela e impressão). */
+.folha { background: #fff; color: #111; width: 210mm; min-height: 297mm; padding: 18mm 20mm 16mm; font: 12pt/1.6 "Times New Roman", Georgia, serif; position: relative; }
+.folha.paisagem { width: 297mm; min-height: 210mm; padding: 10mm 12mm; font-size: 9pt; line-height: 1.35; }
+.cab-escola { display: flex; gap: 14px; align-items: center; border-bottom: 2px solid #2b3192; padding-bottom: 8px; margin-bottom: 18px; font-family: Arial, sans-serif; font-size: 9pt; line-height: 1.35; }
+.cab-escola img { height: 60px; }
+.paisagem .cab-escola img { height: 42px; }
+.cab-escola p { margin: 0; }
+.cab-escola .nome-escola { font-size: 14pt; font-weight: 700; color: #2b3192; }
+.titulo-doc { text-align: center; font-size: 15pt; letter-spacing: .5px; margin: 24px 0 28px; }
+.paisagem .titulo-doc { font-size: 12pt; margin: 4px 0 8px; }
+.texto { text-align: justify; text-indent: 3em; margin: 0 0 14px; }
+.caixas { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 8px 0 16px; }
+.local-data { text-align: right; margin: 36px 0 56px; }
+.assinatura { text-align: center; margin: 0 auto; width: 70%; }
+.assinatura .linha { display: block; border-top: 1px solid #111; margin-bottom: 4px; }
+.assinatura p { margin: 0; line-height: 1.3; }
+.autenticidade { position: absolute; left: 20mm; right: 20mm; bottom: 8mm; font: 7.5pt/1.3 Arial, sans-serif; color: #555; text-align: center; }
+.paisagem .autenticidade { left: 12mm; right: 12mm; bottom: 5mm; }
+.subtitulo { font-family: Arial, sans-serif; font-weight: 600; margin: 0 0 8px; }
+
+.folha table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+.folha .grade th, .folha .grade td { border: 1px solid #555; padding: 3px 6px; font-size: 10pt; }
+.folha .grade td.n, .folha .grade td.c { text-align: center; width: 1%; white-space: nowrap; }
+.folha .grade td.assin { width: 40%; }
+.folha .grade.notas td, .folha .grade.notas th { text-align: center; font-size: 9pt; }
+.folha .grade.notas td.nome { text-align: left; }
+.cab-avaliacao th, .cab-avaliacao td { border: 1px solid #555; padding: 3px 6px; font-size: 10pt; text-align: left; }
+.cab-avaliacao th { background: #f0f0f0; width: 18%; }
+.rodape-avaliacao { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; margin-top: 24px; font-family: Arial, sans-serif; font-size: 10pt; }
+
+.cab-boletim td { border: 1px solid #555; padding: 3px 6px; }
+.cab-boletim .situacao span { margin-right: 16px; }
+.cab-boletim .situacao .marcado { font-weight: 700; }
+table.boletim { margin-top: 6px; }
+.boletim th, .boletim td { border: 1px solid #777; padding: 2px 3px; text-align: center; font-size: 8pt; }
+.boletim thead th { background: #e8e9f3; }
+.boletim th.disc { text-align: left; white-space: nowrap; background: #f5f5f5; }
+.boletim td.na { background: #eee; }
+.boletim td.forte { font-weight: 700; }
+.boletim .baixa { color: #c00; }
+.rodape-boletim { display: grid; grid-template-columns: 1fr 320px; gap: 12px; margin-top: 8px; font-family: Arial, sans-serif; }
+.rodape-boletim p { margin: 0 0 4px; }
+.legenda { font-size: 7pt; color: #333; }
+.grafico { width: 100%; font: 7pt Arial, sans-serif; }
+.grafico .ma, .leg-grafico .ma { fill: #2b3192; background: #2b3192; }
+.grafico .mt, .leg-grafico .mt { fill: #f9ac14; background: #f9ac14; }
+.leg-grafico { font-size: 8pt; margin: 0; }
+.leg-grafico span { display: inline-block; width: 10px; height: 10px; vertical-align: middle; margin: 0 2px 0 8px; }
+.ficha { display: flex; gap: 12px; margin-bottom: 8px; }
+.ficha .foto { width: 30mm; height: 38mm; object-fit: cover; border: 1px solid #777; flex: none; display: grid; place-items: center; color: #999; }
+.ficha .dados th { text-align: left; width: 22%; background: #f5f5f5; }
+.ficha .dados th, .ficha .dados td { border: 1px solid #aaa; padding: 2px 6px; }
+
+@media print {
+  @page { size: A4; margin: 0; }
+  .folha { box-shadow: none !important; margin: 0 !important; page-break-after: always; break-after: page; }
+  .folha.paisagem { page: paisagem; }
+  @page paisagem { size: A4 landscape; }
+}

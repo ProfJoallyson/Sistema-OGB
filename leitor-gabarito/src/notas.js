@@ -4,27 +4,29 @@
 const TIPOS = {
   SO: { nome: 'Simulado Obrigatório', n: 80 },
   SP: { nome: 'Simulado Parcial', n: 80 },
-  SG: { nome: 'Simulado Global', n: 90 },
+  SG: { nome: 'Simulado Global', n: 80 },
   SE: { nome: 'Simulado Extra (bônus)', n: 80 },
   OUTRO: { nome: 'Outro', n: 45 },
 };
 
 // [acertos mínimos, nota] — PROCV aproximado, como na planilha.
-const TABELA_80 = [[1, 2], [10, 3], [20, 5], [30, 6], [40, 7], [50, 8], [66, 9], [72, 10]];
-const TABELA_90 = [[1, 2], [11, 3], [23, 5], [34, 6], [45, 7], [56, 8], [74, 9], [81, 10]]; // decisão de 20/10/2026
+// Tabela do professor (04/11/2026): 0 acertos = 0; 1-9 = 2; 10-19 = 3; ... 72 ou mais = 10.
+const TABELA_80 = [[0, 0], [1, 2], [10, 3], [20, 5], [30, 6], [40, 7], [50, 8], [66, 9], [72, 10]];
 const TABELA_SE = [[0, 0], [20, 0.5], [35, 1], [50, 1.5], [64, 2]];
 
+// Tabela de 80 com os limites proporcionais ao número de questões.
+// Ex.: 40 questões (metade da prova do Global) => limites divididos por 2: 1-4 = 2, 5-9 = 3, ..., 36-40 = 10.
+function tabelaParaQuestoes(n) {
+  return TABELA_80.map(([a, nota]) => [a === 0 ? 0 : Math.max(1, Math.ceil(a * n / 80 - 1e-9)), nota]);
+}
 function tabelaDoSimulado(sim) {
   if (sim.tipo === 'SE') return TABELA_SE;
-  if (sim.tipo === 'SG' || sim.nQuestoes === 90) return TABELA_90;
-  if (sim.nQuestoes === 80) return TABELA_80;
-  // outro tamanho: tabela de 80 proporcional (mesma regra usada para criar a do SG)
-  return TABELA_80.map(([a, n]) => [Math.max(1, Math.round(a * sim.nQuestoes / 80)), n]);
+  return tabelaParaQuestoes(sim.nQuestoes);
 }
 
-// Devolve a nota (número) ou null quando a planilha mostraria "-" (0 acertos).
-function notaPorAcertos(sim, acertos) {
-  const tab = tabelaDoSimulado(sim);
+// Devolve a nota (número) pela tabela (PROCV aproximado).
+function notaPorAcertos(sim, acertos, tabela) {
+  const tab = tabela || tabelaDoSimulado(sim);
   let nota = null;
   for (const [min, n] of tab) if (acertos >= min) nota = n;
   return nota;
@@ -69,7 +71,10 @@ function corrigirResultado(sim, r) {
   const areas = (sim.areas || []).map(a => {
     let ac = 0;
     for (let q = a.de; q <= a.ate; q++) if (certo[q - 1]) ac++;
-    return { nome: a.nome, acertos: ac, total: a.ate - a.de + 1 };
+    const total = a.ate - a.de + 1;
+    // No Global da 3ª série cada área (metade da prova) tem nota própria.
+    const nota = sim.notaPorArea ? notaPorAcertos(sim, ac, tabelaParaQuestoes(total)) : null;
+    return { nome: a.nome, acertos: ac, total, nota };
   });
   const nota = notaPorAcertos(sim, acertos);
   return { acertos, certo, areas, nota, corUsada: cor, avisos, semGabarito, brancos, duplas, gabarito };
@@ -81,4 +86,4 @@ function formatarNota(sim, nota) {
   return sim.tipo === 'SE' ? '+' + s : s;
 }
 
-if (typeof module !== 'undefined') module.exports = { TIPOS, TABELA_80, TABELA_90, TABELA_SE, notaPorAcertos, corrigirResultado, gabaritoDoAluno, formatarNota, tabelaDoSimulado };
+if (typeof module !== 'undefined') module.exports = { TIPOS, TABELA_80, TABELA_SE, tabelaParaQuestoes, notaPorAcertos, corrigirResultado, gabaritoDoAluno, formatarNota, tabelaDoSimulado };

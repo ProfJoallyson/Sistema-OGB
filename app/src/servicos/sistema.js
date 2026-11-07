@@ -78,6 +78,8 @@ export class Sistema {
     await this.exigir('usuarios.gerenciar');
     VALIDAR.usuarios(u);
     const email = normalizarEmail(u.email);
+    const aluno = (await this.repo.listar('alunos', { email }))[0];
+    if (aluno) throw new Error(`O e-mail ${email} está ligado ao aluno ${aluno.nome}.`);
     const doc = { nome: u.nome.trim(), email, perfis: [...new Set(u.perfis)], corrigeNotas: !!u.corrigeNotas, ativo: u.ativo !== false };
     if (doc.corrigeNotas && !doc.perfis.includes('secretaria')) doc.corrigeNotas = false;
     await this._gravar([{ op: 'salvar', colecao: 'usuarios', id: chaves.usuario(email), dados: doc }], 'usuario.salvar');
@@ -91,6 +93,8 @@ export class Sistema {
     const ops = [];
     for (const u of plano.usuarios) {
       VALIDAR.usuarios(u);
+      const aluno = (await this.repo.listar('alunos', { email: normalizarEmail(u.email) }))[0];
+      if (aluno) throw new Error(`O e-mail ${u.email} está ligado ao aluno ${aluno.nome}.`);
       ops.push({ op: 'salvar', colecao: 'usuarios', id: chaves.usuario(u.email), dados: { ...u, email: normalizarEmail(u.email), ativo: true } });
     }
     for (const a of plano.atribuicoes) {
@@ -179,9 +183,25 @@ export class Sistema {
   }
 
   // A tesouraria faz a matrícula e os dados vão direto para a ficha do aluno.
+  // Cada e-mail da escola fica ligado a um só aluno e não pode ser de funcionário.
+  async _conferirEmailAluno(aluno) {
+    if (!aluno.email) { delete aluno.email; return; }
+    aluno.email = normalizarEmail(aluno.email);
+    const outro = (await this.repo.listar('alunos', { email: aluno.email })).find(a => a.id !== aluno.id);
+    if (outro) throw new Error(`O e-mail ${aluno.email} já está ligado ao aluno ${outro.nome}.`);
+    if (await this.repo.obter('usuarios', chaves.usuario(aluno.email))) throw new Error(`O e-mail ${aluno.email} é de um usuário do sistema (professor ou funcionário).`);
+  }
+
+  async alunoPorEmail(email) {
+    await this.exigir('alunos.ver');
+    return (await this.repo.listar('alunos', { email: normalizarEmail(email) }))[0] || null;
+  }
+
   async matricular(aluno, { turmaId, numero, bolsa = 'nenhuma', turno }) {
     await this.exigir('matricula.fazer');
     VALIDAR.alunos(aluno);
+    aluno = { ...aluno };
+    await this._conferirEmailAluno(aluno);
     const t = await this.repo.obter('turmas', turmaId);
     if (!t) throw new Error('Turma não encontrada.');
     const alunoId = aluno.id || novoId('a');
@@ -204,6 +224,8 @@ export class Sistema {
   async salvarAluno(aluno) {
     await this.exigir('matricula.fazer');
     VALIDAR.alunos(aluno);
+    aluno = { ...aluno };
+    await this._conferirEmailAluno(aluno);
     const { matriculas, matricula, ...dados } = aluno;
     await this._gravar([{ op: 'salvar', colecao: 'alunos', id: aluno.id, dados }], 'aluno.salvar');
   }

@@ -16,7 +16,8 @@ export function formularioAluno(a = {}, { desabilitado = false } = {}) {
       campo('Cidade onde nasceu', 'naturalidade', a.naturalidade),
       campo('Estado', 'ufNascimento', a.ufNascimento || 'PB', { tipo: 'select', opcoes: UFS }),
       campo('CPF', 'cpf', a.cpf, { inputmode: 'numeric' }),
-      campo('RG', 'rg', a.rg)),
+      campo('RG', 'rg', a.rg),
+      campo('E-mail do aluno na escola', 'email', a.email, { tipo: 'email', placeholder: 'nome@colegioecursoogb.com.br', ajuda: 'A conta Google da escola criada para o aluno. Cada e-mail fica ligado a um só aluno.' })),
     grupo('Filiação',
       campo('Nome do pai', 'pai.nome', o(a.pai, 'nome')), campo('Profissão do pai', 'pai.profissao', o(a.pai, 'profissao')),
       campo('Nome da mãe', 'mae.nome', o(a.mae, 'nome')), campo('Profissão da mãe', 'mae.profissao', o(a.mae, 'profissao'))),
@@ -29,7 +30,7 @@ export function formularioAluno(a = {}, { desabilitado = false } = {}) {
       campo('Telefone do aluno', 'contatos.telefoneAluno', o(a.contatos, 'telefoneAluno'), { tipo: 'tel' }),
       campo('E-mail do pai', 'contatos.emailPai', o(a.contatos, 'emailPai'), { tipo: 'email' }),
       campo('E-mail da mãe', 'contatos.emailMae', o(a.contatos, 'emailMae'), { tipo: 'email' }),
-      campo('E-mail do aluno', 'contatos.emailAluno', o(a.contatos, 'emailAluno'), { tipo: 'email' })));
+      campo('E-mail pessoal do aluno', 'contatos.emailAluno', o(a.contatos, 'emailAluno'), { tipo: 'email' })));
 }
 
 export async function tela(ctx) {

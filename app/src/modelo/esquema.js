@@ -8,7 +8,7 @@ export const COLECOES = {
   escola: 'Dados da escola (um documento "config"): nome, razão social, CNPJ, endereço, telefone, ano letivo atual, assinaturas.',
   usuarios: 'Quem entra no sistema: e-mail da escola, nome, perfis, permissão de corrigir notas, ativo.',
   funcionarios: 'Cadastro de funcionários (declaração de funcionário e assinaturas).',
-  alunos: 'Ficha individual: dados pessoais, filiação, contato, foto, vida escolar anterior.',
+  alunos: 'Ficha individual: dados pessoais, filiação, contato, foto, vida escolar anterior e o e-mail da escola do aluno (um e-mail por aluno).',
   turmas: 'Turma de um ano letivo: série, letra, turno, horário, disciplinas.',
   matriculas: 'Aluno em uma turma num ano letivo: número na turma, bolsa, situação.',
   atribuicoes: 'Qual professor dá qual disciplina em qual turma.',
@@ -45,6 +45,13 @@ export const VALIDAR = {
     req(a.nome, 'nome do aluno');
     if (a.sexo && !SEXOS[a.sexo]) throw new Error('Sexo deve ser F ou M.');
     if (a.nascimento && !/^\d{4}-\d{2}-\d{2}$/.test(a.nascimento)) throw new Error('Data de nascimento inválida.');
+    // Conta Google da escola criada para o aluno (decisão de 07/11: cada e-mail fica ligado a um aluno).
+    if (a.email) {
+      const email = normalizarEmail(a.email);
+      if (!/^[^@\s]+@[^@\s]+$/.test(email) || !email.endsWith('@' + DOMINIO_ESCOLA)) {
+        throw new Error(`O e-mail do aluno precisa ser da escola (@${DOMINIO_ESCOLA}): ${a.email}`);
+      }
+    }
   },
   turmas(t) {
     req(t.ano, 'ano letivo');

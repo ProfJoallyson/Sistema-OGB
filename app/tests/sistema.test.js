@@ -169,3 +169,18 @@ test('planilha modelo: lê com a SheetJS e ignora as linhas de exemplo', async (
   assert.equal(cheio.atribuicoes.length, 4);
   assert.deepEqual(cheio.usuarios.find(u => u.nome === 'João Souza').perfis, ['professor', 'coordenacao']);
 });
+
+test('e-mail da escola fica ligado a um só aluno', async () => {
+  const { s, repo } = await como('bia.secretaria');
+  const id = await s.matricular({ nome: 'Aluno Com Email', sexo: 'M', email: 'Aluno.Novo@colegioecursoogb.com.br' }, { turmaId: T6A });
+  assert.equal((await repo.obter('alunos', id)).email, 'aluno.novo@colegioecursoogb.com.br');
+  assert.equal((await s.alunoPorEmail('ALUNO.NOVO@colegioecursoogb.com.br')).id, id);
+  await assert.rejects(s.matricular({ nome: 'Outro', email: 'aluno.novo@colegioecursoogb.com.br' }, { turmaId: T6A }), /já está ligado/);
+  await assert.rejects(s.matricular({ nome: 'Outro', email: 'outro@gmail.com' }, { turmaId: T6A }), /precisa ser da escola/);
+  await assert.rejects(s.matricular({ nome: 'Outro', email: 'ana.prof@colegioecursoogb.com.br' }, { turmaId: T6A }), /usuário do sistema/);
+  // salvar a própria ficha de novo não acusa duplicidade
+  await s.salvarAluno({ ...(await repo.obter('alunos', id)), nome: 'Aluno Com Email Editado' });
+  const admin = (await como('admin')).s;
+  admin.repo = repo;
+  await assert.rejects(admin.salvarUsuario({ nome: 'X', email: 'aluno.novo@colegioecursoogb.com.br', perfis: ['professor'] }), /ligado ao aluno/);
+});

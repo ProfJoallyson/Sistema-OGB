@@ -150,7 +150,7 @@ export const MODELOS = [
         linha('Nascimento', `${dataCurta(a.nascimento)}${a.naturalidade ? ` · ${a.naturalidade}-${a.ufNascimento || ''}` : ''}`) +
         linha('Pai', a.pai && [a.pai.nome, a.pai.profissao].filter(Boolean).join(' · ')) +
         linha('Mãe', a.mae && [a.mae.nome, a.mae.profissao].filter(Boolean).join(' · ')) +
-        linha('Endereço', end) + linha('Contatos', contatos) + linha('Bolsa', BOLSAS[m.bolsa || 'nenhuma']) +
+        linha('Endereço', end) + linha('Contatos', contatos) + (a.email ? linha('E-mail da escola', a.email) : '') + linha('Bolsa', BOLSAS[m.bolsa || 'nenhuma']) +
         '</table></div>' + boletimHTML(ctx.boletim, { semCabecalho: true });
     },
   },
